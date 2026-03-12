@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import UnderlineExt from '@tiptap/extension-underline';
@@ -12,9 +13,10 @@ interface DocumentEditorProps {
   content: JSONContent;
   onChange: (content: JSONContent) => void;
   editable?: boolean;
+  initialHtml?: string | null;
 }
 
-export function DocumentEditor({ content, onChange, editable = true }: DocumentEditorProps) {
+export function DocumentEditor({ content, onChange, editable = true, initialHtml }: DocumentEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -33,6 +35,14 @@ export function DocumentEditor({ content, onChange, editable = true }: DocumentE
       },
     },
   });
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (editor && initialHtml) {
+      editor.commands.setContent(initialHtml);
+      onChange(editor.getJSON());
+    }
+  }, [editor, initialHtml]);
 
   function handleInsertVariable() {
     const name = prompt('Variable name:');
