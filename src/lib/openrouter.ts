@@ -1,4 +1,29 @@
-export async function queryAI(prompt: string, context?: string): Promise<string> {
+import { getSystemPrompt, getMaxTokens, type AIMode } from './legal-knowledge';
+
+const DEFAULT_MODEL = 'google/gemini-2.5-flash';
+
+export async function queryAI(
+  prompt: string,
+  context?: string,
+  mode: AIMode = 'draft'
+): Promise<string> {
+  const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  const systemPrompt = getSystemPrompt(mode);
+  const maxTokens = getMaxTokens(mode);
+
+  const messages: Array<{ role: string; content: string }> = [
+    { role: 'system', content: systemPrompt },
+  ];
+
+  if (context) {
+    messages.push({
+      role: 'user',
+      content: `Current document content:\n\n${context}`,
+    });
+  }
+
+  messages.push({ role: 'user', content: prompt });
+
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -6,18 +31,9 @@ export async function queryAI(prompt: string, context?: string): Promise<string>
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'meta-llama/llama-3.1-8b-instruct:free',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a legal contract drafting assistant. Write clear, professional contract language. When asked to draft, provide the full text ready to insert into a document. Be concise and specific.',
-        },
-        ...(context
-          ? [{ role: 'user' as const, content: `Current document context:\n${context}` }]
-          : []),
-        { role: 'user', content: prompt },
-      ],
-      max_tokens: 2000,
+      model,
+      messages,
+      max_tokens: maxTokens,
     }),
   });
 
