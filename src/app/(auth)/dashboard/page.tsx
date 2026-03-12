@@ -1,8 +1,9 @@
 import { createServerSupabase } from '@/lib/supabase-server';
 import { DocumentList } from '@/components/dashboard/DocumentList';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
 import { Plus, LayoutTemplate } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabase();
@@ -30,18 +31,14 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/templates">
-              <LayoutTemplate className="w-4 h-4 mr-2" />
-              Templates
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link href="/documents/new">
-              <Plus className="w-4 h-4 mr-2" />
-              New Contract
-            </Link>
-          </Button>
+          <Link href="/templates" className={cn(buttonVariants({ variant: 'outline' }))}>
+            <LayoutTemplate className="w-4 h-4 mr-2" />
+            Templates
+          </Link>
+          <Link href="/documents/new" className={cn(buttonVariants())}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Contract
+          </Link>
         </div>
       </div>
 

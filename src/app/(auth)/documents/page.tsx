@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { DocumentList } from '@/components/dashboard/DocumentList';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { Plus, Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { DocumentWithStatus } from '@/types';
 
 const STATUS_FILTERS = ['all', 'draft', 'sent', 'viewed', 'signed', 'complete'] as const;
@@ -41,12 +42,10 @@ export default function DocumentsPage() {
     <div className="max-w-3xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold">All Documents</h1>
-        <Button asChild>
-          <Link href="/documents/new">
-            <Plus className="w-4 h-4 mr-2" />
-            New Contract
-          </Link>
-        </Button>
+        <Link href="/documents/new" className={cn(buttonVariants())}>
+          <Plus className="w-4 h-4 mr-2" />
+          New Contract
+        </Link>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">

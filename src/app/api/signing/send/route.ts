@@ -4,8 +4,6 @@ import { logAuditEvent } from '@/lib/audit';
 import { randomBytes } from 'crypto';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
@@ -56,6 +54,7 @@ export async function POST(request: NextRequest) {
   // Send email (skip if embed mode)
   if (!embed_mode) {
     const signUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://signcraft.vercel.app'}/sign/${access_token}`;
+    const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: 'SignCraft <noreply@signcraft.vercel.app>',
       to: signer_email,

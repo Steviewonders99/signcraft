@@ -1,7 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
-import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
+import { NodeViewWrapper, ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
 
-const VariableComponent = ({ node }: { node: { attrs: { name: string } } }) => (
+const VariableComponent = ({ node }: ReactNodeViewProps) => (
   <NodeViewWrapper as="span" className="inline">
     <span
       className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono"
@@ -12,7 +12,7 @@ const VariableComponent = ({ node }: { node: { attrs: { name: string } } }) => (
       }}
     >
       {'{{ '}
-      {node.attrs.name}
+      {(node.attrs as Record<string, string>).name}
       {' }}'}
     </span>
   </NodeViewWrapper>

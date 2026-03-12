@@ -140,7 +140,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
               {saving ? 'Saving...' : 'Save'}
             </Button>
             <Dialog>
-              <DialogTrigger asChild>
+              <DialogTrigger>
                 <Button>
                   <Send className="w-4 h-4 mr-2" />
                   Send for Signing
