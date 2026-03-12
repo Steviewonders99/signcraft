@@ -7,9 +7,10 @@ interface AIOverlayProps {
   open: boolean;
   onClose: () => void;
   onInsert: (text: string) => void;
+  documentContext?: string;
 }
 
-export function AIOverlay({ open, onClose, onInsert }: AIOverlayProps) {
+export function AIOverlay({ open, onClose, onInsert, documentContext }: AIOverlayProps) {
   if (!open) return null;
 
   return (
@@ -20,13 +21,13 @@ export function AIOverlay({ open, onClose, onInsert }: AIOverlayProps) {
         style={{ height: '60vh', backgroundColor: 'var(--bg-card)' }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <span className="text-sm font-semibold">AI Draft Assistant</span>
+          <span className="text-sm font-semibold">AI Legal Assistant</span>
           <button onClick={onClose}>
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="h-[calc(60vh-48px)]">
-          <AISidebar onInsert={onInsert} />
+          <AISidebar onInsert={onInsert} documentContext={documentContext} />
         </div>
       </div>
     </div>
