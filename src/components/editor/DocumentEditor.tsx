@@ -6,6 +6,7 @@ import type { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import UnderlineExt from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
+import { Markdown } from 'tiptap-markdown';
 import { Toolbar } from './Toolbar';
 import { VariableTagExtension } from './VariableTag';
 import type { JSONContent } from '@tiptap/core';
@@ -28,6 +29,7 @@ export const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorPro
       StarterKit,
       UnderlineExt,
       Placeholder.configure({ placeholder: 'Start drafting your contract...' }),
+      Markdown.configure({ transformPastedText: true, transformCopiedText: false }),
       VariableTagExtension,
     ],
     content,
