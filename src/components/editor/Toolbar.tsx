@@ -13,6 +13,7 @@ import {
   Redo,
   Code,
   Sparkles,
+  PenLine,
 } from 'lucide-react';
 import { markdownToHtml } from '@/lib/markdown';
 
@@ -74,6 +75,37 @@ export function Toolbar({ editor, onInsertVariable }: ToolbarProps) {
       >
         <Sparkles className="w-3.5 h-3.5" />
         Format MD
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          // Move cursor to the very end of the document
+          editor.commands.focus('end');
+
+          const sigBlock = [
+            { type: 'horizontalRule' },
+            { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Signatures' }] },
+            { type: 'paragraph', content: [{ type: 'text', marks: [{ type: 'bold' }], text: 'Party A (Sender)' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Signature: ___________________________' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Printed Name: ___________________________' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Title: ___________________________' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Date: ___________________________' }] },
+            { type: 'paragraph', content: [] },
+            { type: 'paragraph', content: [{ type: 'text', marks: [{ type: 'bold' }], text: 'Party B (Recipient)' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Signature: ___________________________' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Printed Name: ___________________________' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Title: ___________________________' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Date: ___________________________' }] },
+          ];
+
+          editor.chain().focus('end').insertContent(sigBlock).run();
+        }}
+        className="h-8 px-2 text-xs gap-1.5"
+        title="Add signature blocks to end of document"
+      >
+        <PenLine className="w-3.5 h-3.5" />
+        Add Signatures
       </Button>
     </div>
   );
