@@ -30,11 +30,13 @@ const MarkdownPaste = Extension.create({
   name: 'markdownPaste',
 
   addProseMirrorPlugins() {
+    const editor = this.editor;
+
     return [
       new Plugin({
         key: new PluginKey('markdownPaste'),
         props: {
-          handlePaste: (view, event) => {
+          handlePaste: (_view, event) => {
             const clipboard = event.clipboardData;
             if (!clipboard) return false;
 
@@ -48,7 +50,7 @@ const MarkdownPaste = Extension.create({
             // Convert markdown → HTML and insert as rich content
             event.preventDefault();
             const converted = markdownToHtml(text);
-            this.editor.commands.insertContent(converted);
+            editor.commands.insertContent(converted);
             return true;
           },
         },
