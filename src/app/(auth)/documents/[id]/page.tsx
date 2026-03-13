@@ -303,17 +303,10 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             </div>
           )}
         </div>
-        {isEditable ? (
-          <div className="hidden lg:flex w-80 shrink-0 border-l border-border overflow-hidden">
-            <AISidebar
-              onInsert={handleInsertContent}
-              documentContext={extractText(content)}
-              getEditor={() => editorRef.current?.getEditor() ?? null}
-            />
-          </div>
-        ) : (
-          <div className="hidden lg:block w-80 shrink-0 border-l border-border overflow-y-auto">
-            <div className="p-4 space-y-6" style={{ backgroundColor: 'var(--bg-card)' }}>
+        <div className="hidden lg:flex w-80 shrink-0 border-l border-border overflow-hidden flex-col">
+          {/* Embed panel + audit trail for sent documents */}
+          {signingRequest && (isEmbed || auditEvents.length > 0) && (
+            <div className="p-4 space-y-4 border-b border-border overflow-y-auto shrink-0" style={{ backgroundColor: 'var(--bg-card)', maxHeight: isEditable ? '40%' : undefined }}>
               {isEmbed && (
                 <EmbedPanel
                   accessToken={(signingRequest as Record<string, string>).access_token}
@@ -331,8 +324,18 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
                 </>
               )}
             </div>
-          </div>
-        )}
+          )}
+          {/* AI sidebar for editable documents */}
+          {isEditable && (
+            <div className="flex-1 min-h-0">
+              <AISidebar
+                onInsert={handleInsertContent}
+                documentContext={extractText(content)}
+                getEditor={() => editorRef.current?.getEditor() ?? null}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Mobile AI */}
