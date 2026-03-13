@@ -149,6 +149,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
 
   const status = signingRequest ? (signingRequest as Record<string, string>).status : 'draft';
   const isDraft = !signingRequest;
+  const isEditable = isDraft || status === 'sent' || status === 'viewed';
   const isEmbed = !!(signingRequest && (signingRequest as Record<string, boolean>).embed_mode);
 
   return (
@@ -168,16 +169,18 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="text-lg font-semibold bg-transparent border-none focus-visible:ring-0 px-0 flex-1 min-w-[200px]"
-          readOnly={!isDraft}
+          readOnly={!isEditable}
         />
         <StatusBadge status={status} />
         {signingRequest && (signingRequest as Record<string, boolean>).embed_mode && <EmbedBadge />}
+        {isEditable && (
+          <Button variant="outline" onClick={handleSave} disabled={saving}>
+            <Save className="w-4 h-4 mr-2" />
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+        )}
         {isDraft && (
           <>
-            <Button variant="outline" onClick={handleSave} disabled={saving}>
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving...' : 'Save'}
-            </Button>
             <Dialog>
               <DialogTrigger className={buttonVariants()}>
                 <Send className="w-4 h-4 mr-2" />
@@ -292,7 +295,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       {/* Editor + sidebar, each scroll independently */}
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 min-w-0 overflow-y-auto">
-          {isDraft ? (
+          {isEditable ? (
             <DocumentEditor ref={editorRef} content={content} onChange={setContent} editable />
           ) : (
             <div className="px-4 md:px-8 py-6">
@@ -300,7 +303,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
             </div>
           )}
         </div>
-        {isDraft ? (
+        {isEditable ? (
           <div className="hidden lg:flex w-80 shrink-0 border-l border-border overflow-hidden">
             <AISidebar
               onInsert={handleInsertContent}
@@ -333,7 +336,7 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
       </div>
 
       {/* Mobile AI */}
-      {isDraft && (
+      {isEditable && (
         <div className="lg:hidden">
           <AIFab onClick={() => setShowAI(true)} />
           <AIOverlay
