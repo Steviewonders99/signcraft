@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     signing_request_id: sr.id,
     signer_role: 'signer',
     signature_data,
+    full_name,
     ip_address: ip,
     user_agent: userAgent,
     viewing_duration_sec: viewing_duration_sec || 0,

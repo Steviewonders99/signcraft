@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Check } from 'lucide-react';
 import type { JSONContent } from '@tiptap/core';
+import type { SenderSignatureInfo } from '@/components/signing/ContractPreview';
 
 interface SigningPageProps {
   token: string;
@@ -19,6 +20,7 @@ interface SigningPageProps {
   status: string;
   signedAt?: string;
   isEmbed?: boolean;
+  senderSignature?: SenderSignatureInfo;
 }
 
 export function SigningPage({
@@ -31,6 +33,7 @@ export function SigningPage({
   status,
   signedAt,
   isEmbed = false,
+  senderSignature,
 }: SigningPageProps) {
   const [agreed, setAgreed] = useState(false);
   const [fullName, setFullName] = useState('');
@@ -100,7 +103,7 @@ export function SigningPage({
         )}
 
         {/* Contract */}
-        <ContractPreview content={content} collapsed transparent={isEmbed} />
+        <ContractPreview content={content} collapsed transparent={isEmbed} senderSignature={senderSignature} />
 
         {/* Agree */}
         <div className={isEmbed ? 'p-4 border-t border-current/10' : 'rounded-lg p-4 border border-border'} style={isEmbed ? undefined : { backgroundColor: 'var(--bg-elevated)' }}>

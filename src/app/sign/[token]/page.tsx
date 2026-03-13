@@ -57,6 +57,15 @@ export default async function SignPage({ params }: { params: Promise<{ token: st
     .eq('signer_role', 'signer')
     .limit(1);
 
+  // Fetch sender's pre-signature for autofilling Party A block
+  const { data: senderSig } = await supabase
+    .from('signatures')
+    .select('signature_data, full_name, signed_at')
+    .eq('signing_request_id', sr.id)
+    .eq('signer_role', 'countersigner')
+    .limit(1)
+    .single();
+
   return (
     <SigningPage
       token={token}
@@ -67,6 +76,11 @@ export default async function SignPage({ params }: { params: Promise<{ token: st
       createdAt={sr.created_at}
       status={sr.status}
       signedAt={signatures?.[0]?.signed_at}
+      senderSignature={senderSig ? {
+        data: senderSig.signature_data,
+        name: senderSig.full_name || '',
+        date: senderSig.signed_at,
+      } : undefined}
     />
   );
 }

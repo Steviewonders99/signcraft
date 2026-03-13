@@ -49,12 +49,14 @@ export async function POST(request: NextRequest) {
 
   // Store sender's pre-signature (countersigner role)
   if (sender_signature_data) {
+    const senderName = user.user_metadata?.full_name || user.email || '';
     await serviceClient
       .from('signatures')
       .insert({
         signing_request_id: signingRequest.id,
         signer_role: 'countersigner',
         signature_data: sender_signature_data,
+        full_name: senderName,
         signed_at: new Date().toISOString(),
       });
   }

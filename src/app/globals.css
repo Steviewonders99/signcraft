@@ -418,6 +418,38 @@
   margin-bottom: 2px;
 }
 
+/* Filled signature block (sender already signed) */
+.sc-contract .sc-sig-block-filled {
+  background: oklch(1 0 0 / 3.5%);
+  border-color: oklch(1 0 0 / 12%);
+}
+.sc-contract .sc-sig-filled .sc-sig-label {
+  color: oklch(0.5 0 0);
+}
+.sc-contract .sc-sig-image {
+  height: 48px;
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
+}
+.sc-contract .sc-sig-typed {
+  font-family: 'Brush Script MT', 'Segoe Script', cursive;
+  font-size: 1.4rem;
+  color: oklch(0.85 0 0);
+}
+.sc-contract .sc-sig-value {
+  font-size: 0.88rem;
+  color: oklch(0.85 0 0);
+}
+.sc-contract .sc-sig-notice {
+  margin-top: 0.625rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid oklch(1 0 0 / 6%);
+  font-size: 0.65rem;
+  color: oklch(0.45 0 0);
+  font-style: italic;
+}
+
 /* Standalone signature field */
 .sc-contract .sc-signature-field {
   display: flex;

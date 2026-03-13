@@ -103,15 +103,27 @@ const SIG_FIELD_LABEL_RE = /^(Signature|Printed Name|Name|Title|Date|Email|Phone
 
 /** Transform signature field paragraphs into styled signature blocks.
  *  Handles <p> tags with optional attributes (e.g. xmlns from generateHTML).
+ *  When senderSignature is provided, the first signature block is filled with sender's data.
  */
-function transformSignatureBlocks(html: string): string {
+function transformSignatureBlocks(html: string, senderSignature?: SenderSignatureInfo): string {
+  let sigBlockIndex = 0;
+
+  function handleBlock(fields: string[]): string {
+    const idx = sigBlockIndex++;
+    // Fill the first signature block (Party A / Sender) with sender's data
+    if (idx === 0 && senderSignature) {
+      return renderFilledSignatureBlockHtml(fields, senderSignature);
+    }
+    return renderSignatureBlockHtml(fields);
+  }
+
   // Single-paragraph format: fields separated by <br>
   html = html.replace(/<p[^>]*>((?:(?:Signature|Printed Name|Name|Title|Date|Email|Phone)\s*:\s*_{2,})(?:<br\s*\/?>(?:(?:Signature|Printed Name|Name|Title|Date|Email|Phone)\s*:\s*_{2,}))+)<\/p>/gi, (_, inner: string) => {
     const fields = inner.split(/<br\s*\/?>/).map((f: string) => {
       const m = f.trim().match(SIG_FIELD_LABEL_RE);
       return m ? m[1] : '';
     }).filter(Boolean);
-    return renderSignatureBlockHtml(fields);
+    return handleBlock(fields);
   });
 
   // Multi-paragraph format: consecutive <p>Field: ___</p> tags (2+ in a row)
@@ -123,7 +135,7 @@ function transformSignatureBlocks(html: string): string {
       const labelMatch = m[1].match(SIG_FIELD_LABEL_RE);
       if (labelMatch) fields.push(labelMatch[1]);
     }
-    return renderSignatureBlockHtml(fields);
+    return handleBlock(fields);
   });
 
   // Any remaining individual signature-related field: Signature: ___, Date: ___, etc.
@@ -142,18 +154,52 @@ function renderSignatureBlockHtml(fields: string[]): string {
   return `<div class="sc-signature-block">${rows}</div>`;
 }
 
+/** Render a filled signature block with sender's actual signature, name, and date */
+function renderFilledSignatureBlockHtml(fields: string[], sig: SenderSignatureInfo): string {
+  const dateStr = sig.date
+    ? new Date(sig.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '';
+
+  const rows = fields.map((label) => {
+    const lowerLabel = label.toLowerCase();
+    if (lowerLabel === 'signature') {
+      const sigContent = sig.data.startsWith('data:')
+        ? `<img src="${sig.data}" alt="Signature" class="sc-sig-image" />`
+        : `<span class="sc-sig-typed">${sig.data}</span>`;
+      return `<div class="sc-sig-row sc-sig-filled"><span class="sc-sig-label">${label}</span>${sigContent}</div>`;
+    }
+    if (lowerLabel === 'printed name' || lowerLabel === 'name') {
+      return `<div class="sc-sig-row sc-sig-filled"><span class="sc-sig-label">${label}</span><span class="sc-sig-value">${sig.name}</span></div>`;
+    }
+    if (lowerLabel === 'date') {
+      return `<div class="sc-sig-row sc-sig-filled"><span class="sc-sig-label">${label}</span><span class="sc-sig-value">${dateStr}</span></div>`;
+    }
+    // Other fields (Title, Email, etc.) remain blank
+    return `<div class="sc-sig-row"><span class="sc-sig-label">${label}</span><span class="sc-sig-line"></span></div>`;
+  }).join('');
+
+  return `<div class="sc-signature-block sc-sig-block-filled">${rows}<div class="sc-sig-notice">Electronically signed via SignCraft</div></div>`;
+}
+
 /** Render a single standalone signature field (e.g. a lone "Date: ___" in the middle of the doc) */
 function renderSignatureFieldHtml(label: string): string {
   return `<div class="sc-signature-field"><span class="sc-sig-label">${label}</span><span class="sc-sig-line"></span></div>`;
+}
+
+export interface SenderSignatureInfo {
+  data: string;
+  name: string;
+  date: string;
 }
 
 interface ContractPreviewProps {
   content: JSONContent;
   collapsed?: boolean;
   transparent?: boolean;
+  senderSignature?: SenderSignatureInfo;
 }
 
-export function ContractPreview({ content, collapsed = true, transparent = false }: ContractPreviewProps) {
+export function ContractPreview({ content, collapsed = true, transparent = false, senderSignature }: ContractPreviewProps) {
   const [expanded, setExpanded] = useState(!collapsed);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Client-only rendering avoids SSR/client hydration mismatch from generateHTML
@@ -173,11 +219,11 @@ export function ContractPreview({ content, collapsed = true, transparent = false
         processed = convertMarkdownInHtml(raw);
       }
 
-      setHtml(transformSignatureBlocks(processed));
+      setHtml(transformSignatureBlocks(processed, senderSignature));
     } catch {
       setHtml('<p>Unable to render document content.</p>');
     }
-  }, [content]);
+  }, [content, senderSignature]);
 
   function handleCollapse() {
     setExpanded(false);

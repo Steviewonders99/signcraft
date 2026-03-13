@@ -1,6 +1,7 @@
 'use client';
 
 import { SigningPage } from '@/components/signing/SigningPage';
+import type { SenderSignatureInfo } from '@/components/signing/ContractPreview';
 import type { JSONContent } from '@tiptap/core';
 
 interface ChromelessSignProps {
@@ -13,6 +14,7 @@ interface ChromelessSignProps {
   signedAt?: string;
   accentHex?: string;
   bgColor?: string;
+  senderSignature?: SenderSignatureInfo;
 }
 
 export function ChromelessSign({
@@ -25,6 +27,7 @@ export function ChromelessSign({
   signedAt,
   accentHex,
   bgColor,
+  senderSignature,
 }: ChromelessSignProps) {
   return (
     <div
@@ -42,6 +45,7 @@ export function ChromelessSign({
         createdAt={createdAt}
         status={status}
         signedAt={signedAt}
+        senderSignature={senderSignature}
         isEmbed
       />
     </div>
