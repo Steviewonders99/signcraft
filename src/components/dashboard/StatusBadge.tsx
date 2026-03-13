@@ -20,3 +20,14 @@ export function StatusBadge({ status }: { status: string }) {
     </Badge>
   );
 }
+
+export function EmbedBadge() {
+  return (
+    <Badge
+      variant="outline"
+      className="min-w-[52px] justify-center text-xs font-medium bg-orange-500/15 text-orange-400 border-orange-500/20"
+    >
+      Embed
+    </Badge>
+  );
+}

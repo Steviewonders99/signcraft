@@ -35,7 +35,7 @@ export function Toolbar({ editor, onInsertVariable }: ToolbarProps) {
   ];
 
   return (
-    <div className="flex items-center gap-0.5 p-2 border-b border-border overflow-x-auto">
+    <div className="flex items-center gap-0.5 px-3 py-2 overflow-x-auto">
       {items.map((item, i) => (
         <Button
           key={i}

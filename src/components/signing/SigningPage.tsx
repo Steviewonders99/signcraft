@@ -66,7 +66,7 @@ export function SigningPage({
 
   if (signed) {
     return (
-      <div className={`${isEmbed ? '' : 'min-h-screen flex items-center justify-center p-4'}`} style={{ backgroundColor: isEmbed ? 'transparent' : 'var(--bg-root)' }}>
+      <div className={isEmbed ? 'p-6' : 'min-h-screen flex items-center justify-center p-4'} style={{ backgroundColor: isEmbed ? 'transparent' : 'var(--bg-root)' }}>
         <div className={`${isEmbed ? 'py-12' : 'w-full max-w-lg'} text-center`}>
           <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: 'hsl(var(--accent) / 0.15)' }}>
             <Check className="w-8 h-8" style={{ color: 'var(--accent-hex)' }} />
@@ -83,8 +83,8 @@ export function SigningPage({
   }
 
   return (
-    <div className={`${isEmbed ? '' : 'min-h-screen flex items-center justify-center p-4'}`} style={{ backgroundColor: isEmbed ? 'transparent' : 'var(--bg-root)' }}>
-      <div className={`${isEmbed ? '' : 'w-full max-w-[520px]'} space-y-6`}>
+    <div className={isEmbed ? 'p-6' : 'min-h-screen flex items-center justify-center p-4'} style={{ backgroundColor: isEmbed ? 'transparent' : 'var(--bg-root)' }}>
+      <div className={`${isEmbed ? 'max-w-2xl mx-auto' : 'w-full max-w-[520px]'} space-y-6`}>
         {/* Header */}
         {!isEmbed && (
           <div className="text-center">
@@ -100,10 +100,10 @@ export function SigningPage({
         )}
 
         {/* Contract */}
-        <ContractPreview content={content} collapsed={!isEmbed} />
+        <ContractPreview content={content} collapsed transparent={isEmbed} />
 
         {/* Agree */}
-        <div className="rounded-lg p-4 border border-border" style={{ backgroundColor: 'var(--bg-elevated)' }}>
+        <div className={isEmbed ? 'p-4 border-t border-current/10' : 'rounded-lg p-4 border border-border'} style={isEmbed ? undefined : { backgroundColor: 'var(--bg-elevated)' }}>
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"

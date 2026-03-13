@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase, createServiceClient } from '@/lib/supabase-server';
 import { logAuditEvent } from '@/lib/audit';
+import { sendMail } from '@/lib/mailer';
 import { randomBytes } from 'crypto';
-import { Resend } from 'resend';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { document_id, signer_name, signer_email, embed_mode } = await request.json();
+  const { document_id, signer_name, signer_email, embed_mode, sender_signature_data } = await request.json();
 
   if (!document_id || !signer_name || !signer_email) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -40,32 +40,54 @@ export async function POST(request: NextRequest) {
       access_token,
       countersign_token,
       status: 'sent',
+      embed_mode: !!embed_mode,
     })
     .select()
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Store sender's pre-signature (countersigner role)
+  if (sender_signature_data) {
+    await serviceClient
+      .from('signatures')
+      .insert({
+        signing_request_id: signingRequest.id,
+        signer_role: 'countersigner',
+        signature_data: sender_signature_data,
+        signed_at: new Date().toISOString(),
+      });
+  }
+
   // Log audit events
   const ip = request.headers.get('x-forwarded-for') || 'unknown';
   await logAuditEvent(signingRequest.id, 'created', ip, { sender_email: user.email });
+  if (sender_signature_data) {
+    await logAuditEvent(signingRequest.id, 'countersigned', ip, { pre_signed: true });
+  }
   await logAuditEvent(signingRequest.id, 'sent', ip, { signer_email, embed_mode: !!embed_mode });
 
   // Send email (skip if embed mode)
   if (!embed_mode) {
     const signUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://signcraft.vercel.app'}/sign/${access_token}`;
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: 'SignCraft <noreply@signcraft.vercel.app>',
+    const senderName = user.user_metadata?.full_name || user.email;
+    await sendMail({
       to: signer_email,
-      subject: `${user.email} sent you "${doc.title}" to sign`,
+      subject: `${senderName} sent you "${doc.title}" to sign`,
       html: `
-        <p>Hi ${signer_name},</p>
-        <p>${user.email} has sent you a contract to review and sign.</p>
-        <p><a href="${signUrl}" style="display:inline-block;padding:12px 24px;background:#22c55e;color:white;text-decoration:none;border-radius:8px;">Review & Sign</a></p>
-        <p>This link expires in 30 days.</p>
+        <div style="font-family:system-ui,-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:32px 0;">
+          <h2 style="font-size:20px;font-weight:600;color:#1a1a1a;margin-bottom:8px;">You have a document to sign</h2>
+          <p style="color:#555;line-height:1.6;">Hi ${signer_name},</p>
+          <p style="color:#555;line-height:1.6;"><strong>${senderName}</strong> has sent you <strong>"${doc.title}"</strong> to review and sign electronically.</p>
+          <div style="margin:28px 0;">
+            <a href="${signUrl}" style="display:inline-block;padding:14px 32px;background:#22c55e;color:white;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;">Review & Sign</a>
+          </div>
+          <p style="color:#999;font-size:13px;">This link expires in 30 days. If you didn't expect this, you can ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:28px 0;" />
+          <p style="color:#bbb;font-size:11px;">Sent via SignCraft — AI-assisted contract drafting & e-signatures</p>
+        </div>
       `,
-    });
+    }).catch(console.error);
   }
 
   return NextResponse.json({

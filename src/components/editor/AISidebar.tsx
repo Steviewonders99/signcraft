@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Plus, PenLine, Search, HelpCircle } from 'lucide-react';
+import { Send, Plus, PenLine, Search, HelpCircle, Pencil, Check, X } from 'lucide-react';
+import type { Editor } from '@tiptap/core';
 
-type AIMode = 'draft' | 'review' | 'explain';
+type AIMode = 'draft' | 'review' | 'explain' | 'edit';
 
 interface ReviewSection {
   name: string;
@@ -19,21 +20,35 @@ interface ReviewResponse {
   summary: string;
 }
 
+interface EditOperation {
+  search: string;
+  replace: string;
+}
+
+interface EditResponse {
+  edits: EditOperation[];
+  summary: string;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   mode?: AIMode;
   review?: ReviewResponse;
+  editResponse?: EditResponse;
+  editsApplied?: boolean;
 }
 
 const MODE_CONFIG = {
   draft: { label: 'Draft', icon: PenLine },
+  edit: { label: 'Edit', icon: Pencil },
   review: { label: 'Review', icon: Search },
   explain: { label: 'Explain', icon: HelpCircle },
 } as const;
 
 const QUICK_PROMPTS: Record<AIMode, string[]> = {
   draft: ['Draft NDA', 'Draft TOS', 'Payment clause', 'IP clause', 'Termination clause', 'Non-compete'],
+  edit: ['Make indemnification mutual', 'Strengthen confidentiality', 'Add termination for convenience', 'Soften non-compete'],
   review: ['Review this contract', 'Check for missing clauses', 'Flag risky terms'],
   explain: ['What is indemnification?', 'Explain limitation of liability', 'What is force majeure?'],
 };
@@ -47,9 +62,10 @@ const FLAG_COLORS = {
 interface AISidebarProps {
   onInsert: (text: string) => void;
   documentContext?: string;
+  getEditor?: () => Editor | null;
 }
 
-export function AISidebar({ onInsert, documentContext }: AISidebarProps) {
+export function AISidebar({ onInsert, documentContext, getEditor }: AISidebarProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -62,7 +78,6 @@ export function AISidebar({ onInsert, documentContext }: AISidebarProps) {
 
   function tryParseReview(content: string): ReviewResponse | null {
     try {
-      // Try to extract JSON from the response (LLM might wrap it in markdown code fences)
       const jsonMatch = content.match(/\{[\s\S]*"sections"[\s\S]*\}/);
       if (!jsonMatch) return null;
       const parsed = JSON.parse(jsonMatch[0]);
@@ -70,6 +85,78 @@ export function AISidebar({ onInsert, documentContext }: AISidebarProps) {
       return null;
     } catch {
       return null;
+    }
+  }
+
+  function tryParseEdit(content: string): EditResponse | null {
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*"edits"[\s\S]*\}/);
+      if (!jsonMatch) return null;
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.edits && Array.isArray(parsed.edits)) return parsed;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function applyEdits(edits: EditOperation[], msgIndex: number) {
+    const editor = getEditor?.();
+    if (!editor) return;
+
+    let applied = 0;
+
+    for (const edit of edits) {
+      // Search within each textblock (paragraph, heading) for reliable position mapping
+      let found = false;
+      editor.state.doc.descendants((node, pos) => {
+        if (found) return false;
+        if (!node.isTextblock) return true;
+
+        const blockText = node.textContent;
+        const idx = blockText.indexOf(edit.search);
+        if (idx === -1) return true;
+
+        // Map text offset within this block to ProseMirror positions
+        // pos is the block node position, content starts at pos+1
+        let textOffset = 0;
+        let from = -1;
+        let to = -1;
+        const searchEnd = idx + edit.search.length;
+
+        node.forEach((child, childOffset) => {
+          if (from !== -1 && to !== -1) return;
+          if (child.isText && child.text) {
+            const start = textOffset;
+            const end = textOffset + child.text.length;
+
+            if (from === -1 && idx >= start && idx < end) {
+              from = pos + 1 + childOffset + (idx - start);
+            }
+            if (from !== -1 && to === -1 && searchEnd > start && searchEnd <= end) {
+              to = pos + 1 + childOffset + (searchEnd - start);
+            }
+
+            textOffset = end;
+          }
+        });
+
+        if (from !== -1 && to !== -1) {
+          editor.chain().focus()
+            .insertContentAt({ from, to }, edit.replace)
+            .run();
+          applied++;
+          found = true;
+        }
+
+        return false;
+      });
+    }
+
+    if (applied > 0) {
+      setMessages((prev) =>
+        prev.map((m, i) => i === msgIndex ? { ...m, editsApplied: true } : m)
+      );
     }
   }
 
@@ -102,12 +189,57 @@ export function AISidebar({ onInsert, documentContext }: AISidebarProps) {
 
       const content = data.response;
       const review = mode === 'review' ? tryParseReview(content) : null;
+      const editResponse = mode === 'edit' ? tryParseEdit(content) : null;
+
+      // Auto-apply edits immediately
+      if (editResponse && editResponse.edits.length > 0) {
+        const editor = getEditor?.();
+        if (editor) {
+          let applied = 0;
+          for (const edit of editResponse.edits) {
+            let found = false;
+            editor.state.doc.descendants((node, pos) => {
+              if (found) return false;
+              if (!node.isTextblock) return true;
+              const blockText = node.textContent;
+              const idx = blockText.indexOf(edit.search);
+              if (idx === -1) return true;
+              let textOffset = 0;
+              let from = -1;
+              let to = -1;
+              const searchEnd = idx + edit.search.length;
+              node.forEach((child, childOffset) => {
+                if (from !== -1 && to !== -1) return;
+                if (child.isText && child.text) {
+                  const start = textOffset;
+                  const end = textOffset + child.text.length;
+                  if (from === -1 && idx >= start && idx < end) {
+                    from = pos + 1 + childOffset + (idx - start);
+                  }
+                  if (from !== -1 && to === -1 && searchEnd > start && searchEnd <= end) {
+                    to = pos + 1 + childOffset + (searchEnd - start);
+                  }
+                  textOffset = end;
+                }
+              });
+              if (from !== -1 && to !== -1) {
+                editor.chain().focus().insertContentAt({ from, to }, edit.replace).run();
+                applied++;
+                found = true;
+              }
+              return false;
+            });
+          }
+        }
+      }
 
       setMessages((prev) => [...prev, {
         role: 'assistant',
         content,
         mode,
         review: review || undefined,
+        editResponse: editResponse ? { ...editResponse } : undefined,
+        editsApplied: editResponse && editResponse.edits.length > 0 ? true : undefined,
       }]);
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Failed to reach AI service. Please try again.', mode }]);
@@ -165,7 +297,7 @@ export function AISidebar({ onInsert, documentContext }: AISidebarProps) {
 
   return (
     <div
-      className="h-[calc(100vh-140px)] flex flex-col rounded-lg border border-border"
+      className="h-full w-full flex flex-col"
       style={{ backgroundColor: 'var(--bg-card)' }}
     >
       {/* Header with mode switcher */}
@@ -202,6 +334,7 @@ export function AISidebar({ onInsert, documentContext }: AISidebarProps) {
         {messages.length === 0 && (
           <p className="text-sm text-muted-foreground text-center mt-8">
             {mode === 'draft' && 'Ask me to draft clauses or contract sections.'}
+            {mode === 'edit' && 'Tell me what to change — I\'ll edit the document directly.'}
             {mode === 'review' && 'I\'ll review your contract clause by clause.'}
             {mode === 'explain' && 'Ask me about any legal term or concept.'}
           </p>
@@ -218,10 +351,46 @@ export function AISidebar({ onInsert, documentContext }: AISidebarProps) {
             >
               {msg.review ? (
                 renderReview(msg.review)
+              ) : msg.editResponse ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground italic">{msg.editResponse.summary}</p>
+                  {msg.editResponse.edits.length > 0 && (
+                    <div className="space-y-1.5">
+                      {msg.editResponse.edits.map((edit, j) => (
+                        <div key={j} className="rounded-md px-2.5 py-2 text-xs" style={{ backgroundColor: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                          <div className="text-red-400/80 line-through mb-1 truncate" title={edit.search}>
+                            {edit.search.slice(0, 80)}{edit.search.length > 80 ? '...' : ''}
+                          </div>
+                          <div className="text-green-400/80 truncate" title={edit.replace}>
+                            {edit.replace.slice(0, 80)}{edit.replace.length > 80 ? '...' : ''}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {msg.editResponse.edits.length > 0 && !msg.editsApplied && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-1 h-6 text-xs"
+                      onClick={() => applyEdits(msg.editResponse!.edits, i)}
+                      style={{ color: 'var(--accent-hex)' }}
+                    >
+                      <Check className="w-3 h-3 mr-1" />
+                      Apply {msg.editResponse.edits.length} edit{msg.editResponse.edits.length > 1 ? 's' : ''} to document
+                    </Button>
+                  )}
+                  {msg.editsApplied && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--accent-hex)' }}>
+                      <Check className="w-3 h-3 inline mr-1" />
+                      Edits applied
+                    </p>
+                  )}
+                </div>
               ) : (
                 <>
                   <p className="whitespace-pre-wrap">{msg.content}</p>
-                  {msg.role === 'assistant' && msg.mode !== 'review' && (
+                  {msg.role === 'assistant' && msg.mode !== 'review' && msg.mode !== 'edit' && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -241,7 +410,7 @@ export function AISidebar({ onInsert, documentContext }: AISidebarProps) {
         {loading && (
           <div className="mb-3">
             <div className="inline-block px-3 py-2 rounded-lg text-sm text-muted-foreground">
-              {mode === 'review' ? 'Reviewing contract...' : 'Thinking...'}
+              {mode === 'review' ? 'Reviewing contract...' : mode === 'edit' ? 'Finding and editing...' : 'Thinking...'}
             </div>
           </div>
         )}
@@ -263,21 +432,34 @@ export function AISidebar({ onInsert, documentContext }: AISidebarProps) {
 
       {/* Input */}
       <div className="px-4 pb-4 pt-2">
-        <div className="ai-input flex items-center gap-2 rounded-lg border border-border px-3 py-2 focus-within:ring-1 focus-within:ring-[var(--accent-hex)]">
-          <input
+        <div className="ai-input flex items-end gap-2 rounded-lg border border-border px-3 py-2 focus-within:ring-1 focus-within:ring-[var(--accent-hex)]">
+          <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+            onChange={(e) => {
+              setInput(e.target.value);
+              // Auto-resize
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder={
               mode === 'draft' ? 'Ask AI to draft...' :
+              mode === 'edit' ? 'e.g. Make the NDA mutual...' :
               mode === 'review' ? 'Ask AI to review...' :
               'Ask about a legal term...'
             }
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            rows={1}
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground resize-none leading-snug"
+            style={{ maxHeight: '120px' }}
           />
           <Button
             size="sm"
-            className="h-7 w-7 p-0"
+            className="h-7 w-7 p-0 shrink-0"
             onClick={() => handleSend()}
             disabled={loading || !input.trim()}
           >

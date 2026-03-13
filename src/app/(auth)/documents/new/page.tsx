@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { DocumentEditor } from '@/components/editor/DocumentEditor';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { DocumentEditor, type DocumentEditorHandle } from '@/components/editor/DocumentEditor';
 import { AISidebar } from '@/components/editor/AISidebar';
 import { AIFab } from '@/components/mobile/AIFab';
 import { AIOverlay } from '@/components/mobile/AIOverlay';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Save, Plus, ArrowLeft, FileText } from 'lucide-react';
+import { Save, Plus, ArrowLeft, FileText, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
+import { useSidebar } from '@/components/layout/AuthShell';
 import type { JSONContent } from '@tiptap/core';
 
 interface TemplateMeta {
@@ -36,17 +37,31 @@ export default function NewDocumentPage() {
   const [initialHtml, setInitialHtml] = useState<string | null>(null);
   const [userTemplates, setUserTemplates] = useState<Array<{ id: string; name: string; category?: string }>>([]);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editorRef = useRef<DocumentEditorHandle>(null);
+  const { collapsed, toggle: toggleNav } = useSidebar();
 
   useEffect(() => {
     fetch('/api/templates/builtin')
       .then((r) => r.json())
-      .then(setTemplates)
+      .then((data: TemplateMeta[]) => {
+        setTemplates(data);
+        // Auto-select template from query param
+        const templateSlug = searchParams.get('template');
+        if (templateSlug) {
+          const match = data.find((t) => t.slug === templateSlug);
+          if (match) {
+            handleSelectTemplate(match);
+          }
+        }
+      })
       .catch(() => setTemplates([]));
     // Also fetch user-created templates
     fetch('/api/templates')
       .then((r) => r.json())
       .then((data) => setUserTemplates(Array.isArray(data) ? data : []))
       .catch(() => setUserTemplates([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function extractText(json: JSONContent): string {
@@ -126,7 +141,7 @@ export default function NewDocumentPage() {
   // Step 1: Template Picker
   if (step === 'pick') {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="p-4 md:p-8 max-w-4xl mx-auto">
         <h1 className="text-xl font-semibold mb-1">New Document</h1>
         <p className="text-sm text-muted-foreground mb-6">Choose a template or start from scratch.</p>
 
@@ -209,8 +224,14 @@ export default function NewDocumentPage() {
 
   // Step 2: Variable Fill Form
   if (step === 'variables' && selectedTemplate) {
+    const vars = selectedTemplate.variables;
+    // Split variables into two columns for desktop
+    const mid = Math.ceil(vars.length / 2);
+    const leftVars = vars.slice(0, mid);
+    const rightVars = vars.slice(mid);
+
     return (
-      <div className="max-w-lg mx-auto">
+      <div className="p-4 md:p-8 max-w-3xl mx-auto">
         <button
           onClick={() => setStep('pick')}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
@@ -219,40 +240,82 @@ export default function NewDocumentPage() {
           Back to templates
         </button>
 
-        <h1 className="text-xl font-semibold mb-1">{selectedTemplate.name}</h1>
-        <p className="text-sm text-muted-foreground mb-6">
-          Fill in the details below. Empty fields will become editable placeholders in the document.
-        </p>
-
-        <div className="space-y-4">
-          {selectedTemplate.variables.map((v) => (
-            <div key={v}>
-              <label className="text-sm font-medium mb-1 block">{v}</label>
-              <Input
-                value={variableValues[v] || ''}
-                onChange={(e) => setVariableValues((prev) => ({ ...prev, [v]: e.target.value }))}
-                placeholder={`Enter ${v.toLowerCase()}...`}
-              />
-            </div>
-          ))}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6">
+          <div>
+            <h1 className="text-xl font-semibold mb-1">{selectedTemplate.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              Fill in the details below. Empty fields become editable placeholders.
+            </p>
+          </div>
+          <div className="flex gap-3 shrink-0">
+            <Button variant="outline" onClick={() => setStep('pick')}>
+              Back
+            </Button>
+            <Button onClick={handleApplyTemplate} disabled={loadingTemplate}>
+              {loadingTemplate ? 'Applying...' : 'Create Document'}
+            </Button>
+          </div>
         </div>
 
-        <div className="flex gap-3 mt-8">
-          <Button variant="outline" onClick={() => setStep('pick')}>
-            Back
-          </Button>
-          <Button onClick={handleApplyTemplate} disabled={loadingTemplate}>
-            {loadingTemplate ? 'Applying...' : 'Create Document'}
-          </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          <div className="space-y-4 min-w-0">
+            {leftVars.map((v) => (
+              <div key={v} className="min-w-0">
+                <label className="text-sm font-medium mb-1 block truncate" title={v}>{v}</label>
+                <textarea
+                  value={variableValues[v] || ''}
+                  onChange={(e) => {
+                    setVariableValues((prev) => ({ ...prev, [v]: e.target.value }));
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+                  }}
+                  placeholder={`Enter ${v.toLowerCase()}...`}
+                  rows={1}
+                  className="w-full min-w-0 rounded-lg border border-input bg-transparent px-3 py-2.5 text-sm leading-snug transition-colors outline-none resize-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                  style={{ maxHeight: '150px' }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-4 min-w-0">
+            {rightVars.map((v) => (
+              <div key={v} className="min-w-0">
+                <label className="text-sm font-medium mb-1 block truncate" title={v}>{v}</label>
+                <textarea
+                  value={variableValues[v] || ''}
+                  onChange={(e) => {
+                    setVariableValues((prev) => ({ ...prev, [v]: e.target.value }));
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+                  }}
+                  placeholder={`Enter ${v.toLowerCase()}...`}
+                  rows={1}
+                  className="w-full min-w-0 rounded-lg border border-input bg-transparent px-3 py-2.5 text-sm leading-snug transition-colors outline-none resize-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                  style={{ maxHeight: '150px' }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   // Step 3: Editor (same as before, with AI sidebar)
+  // Uses negative margin to break out of the layout padding and fill the viewport
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex items-center gap-3 mb-4">
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Fixed top bar */}
+      <div className="flex items-center gap-3 px-4 md:px-8 py-3 border-b border-border shrink-0" style={{ backgroundColor: 'var(--bg-root)' }}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="hidden md:inline-flex"
+          onClick={toggleNav}
+          title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+        >
+          {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+        </Button>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -265,12 +328,17 @@ export default function NewDocumentPage() {
         </Button>
       </div>
 
-      <div className="flex gap-4">
-        <div className="flex-1 min-w-0">
-          <DocumentEditor content={content} onChange={setContent} initialHtml={initialHtml} />
+      {/* Editor + sidebar, each scroll independently */}
+      <div className="flex flex-1 min-h-0">
+        <div className="flex-1 min-w-0 overflow-y-auto">
+          <DocumentEditor ref={editorRef} content={content} onChange={setContent} initialHtml={initialHtml} />
         </div>
-        <div className="hidden lg:block w-80 shrink-0">
-          <AISidebar onInsert={handleInsertContent} documentContext={extractText(content)} />
+        <div className="hidden lg:flex w-80 shrink-0 border-l border-border overflow-hidden">
+          <AISidebar
+            onInsert={handleInsertContent}
+            documentContext={extractText(content)}
+            getEditor={() => editorRef.current?.getEditor() ?? null}
+          />
         </div>
       </div>
 

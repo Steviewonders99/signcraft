@@ -42,16 +42,25 @@ export async function POST(request: NextRequest) {
 
   if (sigError) return NextResponse.json({ error: sigError.message }, { status: 500 });
 
-  // Update status
-  await supabase
-    .from('signing_requests')
-    .update({ status: 'signed' })
-    .eq('id', sr.id);
-
   await logAuditEvent(sr.id, 'signed', ip, { signer_name: full_name, user_agent: userAgent });
 
-  // Notify sender directly (no HTTP webhook — same process)
-  const { notifySender } = await import('@/lib/notifications');
+  // Check if sender already pre-signed (countersigner signature exists)
+  const { data: existingSigs } = await supabase
+    .from('signatures')
+    .select('id')
+    .eq('signing_request_id', sr.id)
+    .eq('signer_role', 'countersigner');
+
+  const senderPreSigned = existingSigs && existingSigs.length > 0;
+
+  // Update status — complete if pre-signed, otherwise awaiting countersign
+  await supabase
+    .from('signing_requests')
+    .update({ status: senderPreSigned ? 'complete' : 'signed' })
+    .eq('id', sr.id);
+
+  // Notify both parties
+  const { notifySender, notifySigner } = await import('@/lib/notifications');
   const { data: doc } = await supabase
     .from('documents')
     .select('title')
@@ -59,13 +68,39 @@ export async function POST(request: NextRequest) {
     .single();
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://signcraft.vercel.app';
-  notifySender({
-    senderId: sr.sender_id,
+
+  // Get sender name for signer confirmation email
+  const { data: { user: sender } } = await supabase.auth.admin.getUserById(sr.sender_id);
+  const senderName = sender?.user_metadata?.full_name || sender?.email || 'the sender';
+
+  // Send signer their confirmation copy
+  notifySigner({
+    signerEmail: sr.signer_email,
     signerName: full_name,
     documentTitle: doc?.title || 'Untitled',
-    event: 'signed',
-    countersignUrl: `${appUrl}/countersign/${sr.countersign_token}`,
+    senderName,
   }).catch(console.error);
 
-  return NextResponse.json({ success: true });
+  if (senderPreSigned) {
+    // Both parties have signed — notify sender of completion
+    await logAuditEvent(sr.id, 'completed', ip, { pre_signed: true });
+    notifySender({
+      senderId: sr.sender_id,
+      signerName: full_name,
+      documentTitle: doc?.title || 'Untitled',
+      event: 'completed',
+      countersignUrl: `${appUrl}/documents/${sr.document_id}`,
+    }).catch(console.error);
+  } else {
+    // Signer signed, sender still needs to countersign
+    notifySender({
+      senderId: sr.sender_id,
+      signerName: full_name,
+      documentTitle: doc?.title || 'Untitled',
+      event: 'signed',
+      countersignUrl: `${appUrl}/countersign/${sr.countersign_token}`,
+    }).catch(console.error);
+  }
+
+  return NextResponse.json({ success: true, complete: senderPreSigned });
 }

@@ -136,3 +136,212 @@
     @apply font-sans;
   }
 }
+
+/* TipTap editor — generous spacing, theme-adaptive colors */
+.sc-editor {
+  font-size: 0.935rem;
+  line-height: 1.75;
+}
+.sc-editor h1,
+.sc-editor h2,
+.sc-editor h3,
+.sc-editor h4 {
+  font-weight: 600;
+}
+.sc-editor h1 { font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; }
+.sc-editor h2 { font-size: 1.25rem; margin-top: 1.75rem; margin-bottom: 0.75rem; }
+.sc-editor h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.625rem; }
+.sc-editor p {
+  margin-bottom: 1rem;
+}
+.sc-editor ul,
+.sc-editor ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+.sc-editor li {
+  margin-bottom: 0.375rem;
+}
+.sc-editor strong {
+  font-weight: 600;
+}
+.sc-editor hr {
+  margin: 1.75rem 0;
+}
+.sc-editor blockquote {
+  padding-left: 1rem;
+  margin: 1.25rem 0;
+}
+
+/* Dark mode editor colors */
+.dark .sc-editor {
+  color: oklch(0.82 0.005 285);
+}
+.dark .sc-editor h1,
+.dark .sc-editor h2,
+.dark .sc-editor h3,
+.dark .sc-editor h4 {
+  color: oklch(0.92 0.005 285);
+}
+.dark .sc-editor strong {
+  color: oklch(0.9 0.005 285);
+}
+.dark .sc-editor hr {
+  border-color: oklch(1 0 0 / 8%);
+}
+.dark .sc-editor blockquote {
+  border-left: 3px solid oklch(1 0 0 / 12%);
+  color: oklch(0.7 0.005 285);
+}
+
+/* Light mode editor colors */
+:root:not(.dark) .sc-editor {
+  color: oklch(0.3 0.005 285);
+}
+:root:not(.dark) .sc-editor h1,
+:root:not(.dark) .sc-editor h2,
+:root:not(.dark) .sc-editor h3,
+:root:not(.dark) .sc-editor h4 {
+  color: oklch(0.15 0.005 285);
+}
+:root:not(.dark) .sc-editor strong {
+  color: oklch(0.2 0.005 285);
+}
+:root:not(.dark) .sc-editor hr {
+  border-color: oklch(0 0 0 / 10%);
+}
+:root:not(.dark) .sc-editor blockquote {
+  border-left: 3px solid oklch(0 0 0 / 15%);
+  color: oklch(0.4 0.005 285);
+}
+
+/* ── Contract preview — professional legal-document formatting ── */
+.sc-contract {
+  font-size: 0.9rem;
+  line-height: 1.85;
+  color: oklch(0.82 0.005 285);
+}
+.sc-contract > *:first-child {
+  margin-top: 0;
+}
+.sc-contract h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: oklch(0.95 0 0);
+  letter-spacing: -0.01em;
+  border-bottom: 1px solid oklch(1 0 0 / 8%);
+  padding-bottom: 0.5rem;
+}
+.sc-contract h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1.75rem;
+  margin-bottom: 0.625rem;
+  color: oklch(0.92 0 0);
+}
+.sc-contract h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: oklch(0.88 0 0);
+}
+.sc-contract p {
+  margin-bottom: 0.875rem;
+  text-align: justify;
+  hyphens: auto;
+}
+.sc-contract ul,
+.sc-contract ol {
+  margin-bottom: 0.875rem;
+  padding-left: 1.75rem;
+}
+.sc-contract ul {
+  list-style-type: disc;
+}
+.sc-contract ol {
+  list-style-type: decimal;
+}
+.sc-contract li {
+  margin-bottom: 0.3rem;
+}
+.sc-contract li::marker {
+  color: oklch(0.5 0 0);
+}
+.sc-contract strong {
+  font-weight: 600;
+  color: oklch(0.92 0 0);
+}
+.sc-contract em {
+  font-style: italic;
+}
+.sc-contract hr {
+  border: none;
+  border-top: 1px solid oklch(1 0 0 / 10%);
+  margin: 1.75rem 0;
+}
+.sc-contract blockquote {
+  border-left: 3px solid oklch(1 0 0 / 15%);
+  padding-left: 1rem;
+  margin: 1.25rem 0;
+  color: oklch(0.65 0.005 285);
+  font-style: italic;
+}
+
+/* Variable placeholders — professional legal blank-field styling */
+.sc-contract .sc-variable {
+  display: inline;
+  border-bottom: 1.5px dashed oklch(1 0 0 / 25%);
+  padding: 0 3px 2px;
+  color: oklch(0.6 0.005 285);
+  font-style: italic;
+  font-size: 0.88em;
+  letter-spacing: 0.01em;
+}
+.sc-contract .sc-variable::before {
+  content: '[';
+  opacity: 0.4;
+}
+.sc-contract .sc-variable::after {
+  content: ']';
+  opacity: 0.4;
+}
+
+/* Signature block — professional legal styling */
+.sc-contract .sc-signature-block {
+  margin: 1.5rem 0 2rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid oklch(1 0 0 / 8%);
+  border-radius: 8px;
+  background: oklch(1 0 0 / 2.5%);
+  max-width: 380px;
+}
+.sc-contract .sc-sig-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+.sc-contract .sc-sig-row:first-child {
+  padding-top: 0.25rem;
+  padding-bottom: 0.875rem;
+}
+.sc-contract .sc-sig-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: oklch(0.55 0 0);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  min-width: 72px;
+}
+.sc-contract .sc-sig-line {
+  flex: 1;
+  border-bottom: 1px solid oklch(1 0 0 / 18%);
+  min-width: 120px;
+  height: 1px;
+  align-self: flex-end;
+  margin-bottom: 2px;
+}

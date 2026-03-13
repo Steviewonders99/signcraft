@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { StatusBadge } from './StatusBadge';
-import { ChevronRight } from 'lucide-react';
+import { StatusBadge, EmbedBadge } from './StatusBadge';
+import { ChevronRight, FileText, Eye } from 'lucide-react';
 import type { DocumentWithStatus } from '@/types';
 
 function getStatus(doc: DocumentWithStatus): string {
@@ -14,6 +14,7 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
+    year: 'numeric',
   });
 }
 
@@ -27,27 +28,37 @@ export function DocumentList({ documents }: { documents: DocumentWithStatus[] })
   }
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)' }}>
-      {documents.map((doc, i) => (
-        <Link
-          key={doc.id}
-          href={`/documents/${doc.id}`}
-          className={`flex items-center justify-between px-4 py-3.5 transition-colors hover:bg-white/[0.03] group ${
-            i > 0 ? 'border-t border-border' : ''
-          }`}
-        >
-          <div className="flex-1 min-w-0 mr-4">
-            <p className="text-sm font-medium truncate">{doc.title}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {doc.signing_request?.signer_name || 'No recipient'} · {formatDate(doc.updated_at)}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <StatusBadge status={getStatus(doc)} />
-            <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden md:block" />
-          </div>
-        </Link>
-      ))}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {documents.map((doc) => {
+        const isEmbed = doc.signing_request?.embed_mode;
+        return (
+          <Link
+            key={doc.id}
+            href={`/documents/${doc.id}`}
+            className="flex items-start gap-4 rounded-lg border border-border p-5 transition-colors hover:border-white/20 group"
+            style={{ backgroundColor: 'var(--bg-card)' }}
+          >
+            <FileText className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium mb-1 truncate">{doc.title}</p>
+              <div className="flex items-center gap-2 mb-1.5">
+                <StatusBadge status={getStatus(doc)} />
+                {isEmbed && <EmbedBadge />}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {doc.signing_request?.signer_name || 'No recipient'}
+                {isEmbed && doc.embed_views !== undefined && (
+                  <span className="inline-flex items-center gap-1 ml-2">
+                    <Eye className="w-3 h-3" /> {doc.embed_views}
+                  </span>
+                )}
+                {' · '}{formatDate(doc.updated_at)}
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+          </Link>
+        );
+      })}
     </div>
   );
 }

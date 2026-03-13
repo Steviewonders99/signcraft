@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   if (!prompt) return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
 
   // Validate mode
-  const validModes: AIMode[] = ['draft', 'review', 'explain'];
+  const validModes: AIMode[] = ['draft', 'review', 'explain', 'edit'];
   const aiMode: AIMode = validModes.includes(mode) ? mode : 'draft';
 
   // Validate review context length

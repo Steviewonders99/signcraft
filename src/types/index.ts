@@ -29,6 +29,7 @@ export interface SigningRequest {
   signer_email: string;
   access_token: string;
   countersign_token: string;
+  embed_mode: boolean;
   expires_at: string;
   created_at: string;
 }
@@ -72,4 +73,5 @@ export interface NotificationPreferences {
 
 export interface DocumentWithStatus extends Document {
   signing_request?: SigningRequest;
+  embed_views?: number;
 }

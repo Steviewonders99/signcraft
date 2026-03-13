@@ -6,6 +6,7 @@ import { DocumentEditor } from '@/components/editor/DocumentEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Save, Trash2 } from 'lucide-react';
+import { NavToggle } from '@/components/layout/NavToggle';
 import type { JSONContent } from '@tiptap/core';
 
 export default function TemplateEditPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,8 +48,9 @@ export default function TemplateEditPage({ params }: { params: Promise<{ id: str
   if (loading) return <p className="text-muted-foreground text-center py-12">Loading...</p>;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-4">
+        <NavToggle />
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
