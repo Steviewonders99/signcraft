@@ -346,6 +346,16 @@
   margin-bottom: 2px;
 }
 
+/* Standalone signature field (individual Date: ___ or Signature: ___ anywhere in doc) */
+.sc-contract .sc-signature-field {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  margin: 0.75rem 0;
+  max-width: 380px;
+}
+
 /* Markdown tables rendered in contract preview */
 .sc-contract .sc-table {
   width: 100%;

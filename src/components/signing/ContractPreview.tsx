@@ -106,9 +106,10 @@ function transformSignatureBlocks(html: string): string {
     return renderSignatureBlockHtml(fields);
   });
 
-  // Single remaining <p>Signature: ___</p>
-  html = html.replace(/<p[^>]*>(Signature\s*:\s*_{2,}[^<]*)<\/p>/gi, () => {
-    return renderSignatureBlockHtml(['Signature']);
+  // Any remaining individual signature-related field: Signature: ___, Date: ___, etc.
+  html = html.replace(/<p[^>]*>((?:Signature|Printed Name|Name|Title|Date)\s*:\s*_{2,}[^<]*)<\/p>/gi, (_, inner: string) => {
+    const m = inner.match(SIG_FIELD_LABEL_RE);
+    return m ? renderSignatureFieldHtml(m[1]) : _;
   });
 
   return html;
@@ -119,6 +120,11 @@ function renderSignatureBlockHtml(fields: string[]): string {
     `<div class="sc-sig-row"><span class="sc-sig-label">${label}</span><span class="sc-sig-line"></span></div>`
   ).join('');
   return `<div class="sc-signature-block">${rows}</div>`;
+}
+
+/** Render a single standalone signature field (e.g. a lone "Date: ___" in the middle of the doc) */
+function renderSignatureFieldHtml(label: string): string {
+  return `<div class="sc-signature-field"><span class="sc-sig-label">${label}</span><span class="sc-sig-line"></span></div>`;
 }
 
 interface ContractPreviewProps {

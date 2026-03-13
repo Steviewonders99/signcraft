@@ -252,6 +252,14 @@ export function ContractPdf({ title, content, signatures, auditEvents }: PdfProp
       const sig = signatures[sigBlockIdx];
       sigBlockIdx++;
       blocks.push(renderSignatureBlock(blocks.length, fields, sig));
+    }
+    // Individual standalone signature field (not part of a consecutive block)
+    else if (isSignatureFieldParagraph(node)) {
+      const labels = extractSigFieldLabels(node);
+      if (labels.length > 0) {
+        blocks.push(renderBlankSigRow(labels[0], blocks.length, labels[0] === 'Signature'));
+      }
+      i++;
     } else {
       const rendered = renderBlock(node, blocks.length);
       if (rendered) blocks.push(rendered);
