@@ -215,82 +215,154 @@
   color: oklch(0.4 0.005 285);
 }
 
-/* ── Contract preview — professional legal-document formatting ── */
+/* ── Contract preview — premium legal-document formatting ── */
 .sc-contract {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   line-height: 1.85;
   color: oklch(0.82 0.005 285);
+  font-feature-settings: 'kern' 1, 'liga' 1;
 }
 .sc-contract > *:first-child {
   margin-top: 0;
 }
+
+/* ── Headings ── */
 .sc-contract h1 {
-  font-size: 1.35rem;
+  font-size: 1.4rem;
   font-weight: 700;
   margin-top: 2rem;
   margin-bottom: 0.75rem;
-  color: oklch(0.95 0 0);
-  letter-spacing: -0.01em;
-  border-bottom: 1px solid oklch(1 0 0 / 8%);
-  padding-bottom: 0.5rem;
+  color: oklch(0.96 0 0);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 2px solid oklch(1 0 0 / 10%);
+  padding-bottom: 0.625rem;
 }
 .sc-contract h2 {
   font-size: 1.125rem;
   font-weight: 600;
-  margin-top: 1.75rem;
+  margin-top: 2rem;
   margin-bottom: 0.625rem;
-  color: oklch(0.92 0 0);
+  color: oklch(0.93 0 0);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  border-bottom: 1px solid oklch(1 0 0 / 6%);
+  padding-bottom: 0.4rem;
 }
 .sc-contract h3 {
-  font-size: 1rem;
+  font-size: 1.02rem;
   font-weight: 600;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
+  color: oklch(0.9 0 0);
+}
+.sc-contract h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.4rem;
   color: oklch(0.88 0 0);
 }
+
+/* ── Body text ── */
 .sc-contract p {
   margin-bottom: 0.875rem;
   text-align: justify;
   hyphens: auto;
 }
+.sc-contract strong {
+  font-weight: 600;
+  color: oklch(0.93 0 0);
+}
+.sc-contract em {
+  font-style: italic;
+  color: oklch(0.78 0.005 285);
+}
+
+/* ── Lists ── */
 .sc-contract ul,
 .sc-contract ol {
   margin-bottom: 0.875rem;
   padding-left: 1.75rem;
 }
-.sc-contract ul {
-  list-style-type: disc;
-}
-.sc-contract ol {
-  list-style-type: decimal;
-}
+.sc-contract ul { list-style-type: disc; }
+.sc-contract ol { list-style-type: decimal; }
 .sc-contract li {
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.35rem;
 }
 .sc-contract li::marker {
   color: oklch(0.5 0 0);
 }
-.sc-contract strong {
-  font-weight: 600;
-  color: oklch(0.92 0 0);
-}
-.sc-contract em {
-  font-style: italic;
-}
+
+/* ── Horizontal rules ── */
 .sc-contract hr {
   border: none;
   border-top: 1px solid oklch(1 0 0 / 10%);
   margin: 1.75rem 0;
 }
+
+/* ── Blockquotes ── */
 .sc-contract blockquote {
   border-left: 3px solid oklch(1 0 0 / 15%);
-  padding-left: 1rem;
-  margin: 1.25rem 0;
-  color: oklch(0.65 0.005 285);
+  padding-left: 1.25rem;
+  margin: 1.5rem 0;
+  color: oklch(0.68 0.005 285);
   font-style: italic;
 }
 
-/* Variable placeholders — professional legal blank-field styling */
+/* ── Code ── */
+.sc-contract code {
+  font-size: 0.85em;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  background: oklch(1 0 0 / 5%);
+  color: oklch(0.75 0.005 285);
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+}
+.sc-contract pre {
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  background: oklch(1 0 0 / 4%);
+  border: 1px solid oklch(1 0 0 / 6%);
+  overflow-x: auto;
+}
+.sc-contract pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+/* ── Tables (from markdown or manual) ── */
+.sc-contract table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.85rem;
+}
+.sc-contract th,
+.sc-contract td {
+  padding: 0.625rem 0.875rem;
+  border: 1px solid oklch(1 0 0 / 8%);
+  text-align: left;
+}
+.sc-contract thead th {
+  font-weight: 600;
+  color: oklch(0.75 0 0);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  background: oklch(1 0 0 / 3%);
+}
+.sc-contract tbody td {
+  color: oklch(0.82 0 0);
+}
+.sc-contract tbody tr:nth-child(even) {
+  background: oklch(1 0 0 / 2%);
+}
+
+/* ── Variable placeholders ── */
 .sc-contract .sc-variable {
   display: inline;
   border-bottom: 1.5px dashed oklch(1 0 0 / 25%);
@@ -309,14 +381,14 @@
   opacity: 0.4;
 }
 
-/* Signature block — professional legal styling */
+/* ── Signature block ── */
 .sc-contract .sc-signature-block {
-  margin: 1.5rem 0 2rem;
+  margin: 1.75rem 0 2rem;
   padding: 1.25rem 1.5rem;
   border: 1px solid oklch(1 0 0 / 8%);
   border-radius: 8px;
   background: oklch(1 0 0 / 2.5%);
-  max-width: 380px;
+  max-width: 400px;
 }
 .sc-contract .sc-sig-row {
   display: flex;
@@ -329,13 +401,13 @@
   padding-bottom: 0.875rem;
 }
 .sc-contract .sc-sig-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: oklch(0.55 0 0);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
-  min-width: 72px;
+  min-width: 80px;
 }
 .sc-contract .sc-sig-line {
   flex: 1;
@@ -346,56 +418,12 @@
   margin-bottom: 2px;
 }
 
-/* Standalone signature field (individual Date: ___ or Signature: ___ anywhere in doc) */
+/* Standalone signature field */
 .sc-contract .sc-signature-field {
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
   padding: 0.5rem 0;
   margin: 0.75rem 0;
-  max-width: 380px;
-}
-
-/* Markdown tables rendered in contract preview */
-.sc-contract .sc-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1rem 0;
-  font-size: 0.85rem;
-}
-.sc-contract .sc-table th,
-.sc-contract .sc-table td {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid oklch(1 0 0 / 10%);
-  text-align: left;
-}
-.sc-contract .sc-table th {
-  font-weight: 600;
-  color: oklch(0.7 0 0);
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 0.03em;
-}
-.sc-contract .sc-table td {
-  color: oklch(0.8 0 0);
-}
-
-/* Headings from markdown conversion */
-.sc-contract h1,
-.sc-contract h2,
-.sc-contract h3,
-.sc-contract h4 {
-  font-weight: 700;
-  line-height: 1.3;
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
-}
-.sc-contract h1 { font-size: 1.5rem; }
-.sc-contract h2 { font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.02em; }
-.sc-contract h3 { font-size: 1.05rem; }
-.sc-contract h4 { font-size: 0.95rem; }
-.sc-contract hr {
-  border: none;
-  border-top: 1px solid oklch(1 0 0 / 12%);
-  margin: 1.5rem 0;
+  max-width: 400px;
 }

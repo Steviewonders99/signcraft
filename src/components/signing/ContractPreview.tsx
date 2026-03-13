@@ -5,6 +5,7 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { generateHTML } from '@tiptap/html';
 import StarterKit from '@tiptap/starter-kit';
 import { ChevronUp } from 'lucide-react';
+import { markdownToHtml } from '@/lib/markdown';
 import type { JSONContent } from '@tiptap/core';
 
 // Lightweight variableTag extension for HTML generation (no React node view)
@@ -33,18 +34,42 @@ const VariableTagHTML = Node.create({
 
 const extensions = [StarterKit, VariableTagHTML];
 
+/** Extract plain text from TipTap JSON, preserving paragraph breaks for markdown parsing */
+function extractPlainText(json: JSONContent): string {
+  if (!json) return '';
+  if (json.text) return json.text;
+  if (json.type === 'hardBreak') return '\n';
+  if (!json.content) return '';
+
+  if (json.type === 'doc') {
+    return json.content.map(extractPlainText).join('\n\n');
+  }
+  // Paragraphs, headings, list items — concatenate inline children
+  return json.content.map(extractPlainText).join('');
+}
+
+/** Detect if extracted text contains raw markdown syntax */
+function hasMarkdownSyntax(text: string): boolean {
+  return (
+    /^#{1,4}\s+/m.test(text) ||
+    /\*\*.+?\*\*/m.test(text) ||
+    /^-{3,}$/m.test(text) ||
+    /^\|.+\|$/m.test(text)
+  );
+}
+
 /** Convert raw markdown syntax inside <p> tags to proper HTML.
- *  This handles documents where AI-generated markdown was stored as plain text.
+ *  Fallback for content that has partial markdown mixed in.
  */
 function convertMarkdownInHtml(html: string): string {
-  // Convert <p>## Heading</p> → <h2>Heading</h2>
-  html = html.replace(/<p[^>]*>####\s+(.+?)<\/p>/gi, '<h4>$1</h4>');
-  html = html.replace(/<p[^>]*>###\s+(.+?)<\/p>/gi, '<h3>$1</h3>');
-  html = html.replace(/<p[^>]*>##\s+(.+?)<\/p>/gi, '<h2>$1</h2>');
-  html = html.replace(/<p[^>]*>#\s+(.+?)<\/p>/gi, '<h1>$1</h1>');
+  // Convert <p> ## Heading </p> → <h2>Heading</h2> (with optional whitespace)
+  html = html.replace(/<p[^>]*>\s*####\s+(.+?)\s*<\/p>/gi, '<h4>$1</h4>');
+  html = html.replace(/<p[^>]*>\s*###\s+(.+?)\s*<\/p>/gi, '<h3>$1</h3>');
+  html = html.replace(/<p[^>]*>\s*##\s+(.+?)\s*<\/p>/gi, '<h2>$1</h2>');
+  html = html.replace(/<p[^>]*>\s*#\s+(.+?)\s*<\/p>/gi, '<h1>$1</h1>');
 
-  // Convert <p>---</p> → <hr>
-  html = html.replace(/<p[^>]*>-{3,}<\/p>/gi, '<hr>');
+  // Convert <p>---</p> → <hr> (with optional whitespace)
+  html = html.replace(/<p[^>]*>\s*-{3,}\s*<\/p>/gi, '<hr>');
 
   // Convert **bold** → <strong>bold</strong> inside any element
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -53,15 +78,13 @@ function convertMarkdownInHtml(html: string): string {
   html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
 
   // Convert markdown tables: | col | col | rows
-  // Detect table blocks: consecutive <p> tags starting with |
   html = html.replace(/(?:<p[^>]*>\|.+?\|<\/p>\s*)+/gi, (match) => {
     const rows = match.match(/<p[^>]*>(\|.+?\|)<\/p>/gi);
     if (!rows || rows.length < 2) return match;
 
-    let table = '<table class="sc-table">';
+    let table = '<table>';
     rows.forEach((row, i) => {
       const cellContent = row.replace(/<p[^>]*>\|(.+?)\|<\/p>/i, '$1');
-      // Skip separator rows (|---|---|)
       if (/^[\s|:-]+$/.test(cellContent)) return;
       const cells = cellContent.split('|').map((c) => c.trim());
       const tag = i === 0 ? 'th' : 'td';
@@ -70,9 +93,6 @@ function convertMarkdownInHtml(html: string): string {
     table += '</table>';
     return table;
   });
-
-  // Convert list items: <p>- (a) text</p> → proper structure
-  // Keep as-is since they're already displaying correctly as paragraphs
 
   return html;
 }
@@ -141,10 +161,19 @@ export function ContractPreview({ content, collapsed = true, transparent = false
 
   useEffect(() => {
     try {
-      const raw = generateHTML(content, extensions);
-      // Convert any raw markdown syntax (from AI-drafted documents stored as plain text)
-      const withMarkdown = convertMarkdownInHtml(raw);
-      setHtml(transformSignatureBlocks(withMarkdown));
+      const plainText = extractPlainText(content);
+      let processed: string;
+
+      if (hasMarkdownSyntax(plainText)) {
+        // Content has raw markdown stored as text — use marked for proper conversion
+        processed = markdownToHtml(plainText);
+      } else {
+        // Properly structured TipTap content — use generateHTML + fallback cleanup
+        const raw = generateHTML(content, extensions);
+        processed = convertMarkdownInHtml(raw);
+      }
+
+      setHtml(transformSignatureBlocks(processed));
     } catch {
       setHtml('<p>Unable to render document content.</p>');
     }
