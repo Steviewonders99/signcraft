@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { StatusBadge, EmbedBadge } from './StatusBadge';
-import { ChevronRight, FileText, Eye } from 'lucide-react';
+import { ChevronRight, FileText, Eye, Trash2 } from 'lucide-react';
 import type { DocumentWithStatus } from '@/types';
 
 function getStatus(doc: DocumentWithStatus): string {
@@ -19,6 +21,23 @@ function formatDate(dateStr: string): string {
 }
 
 export function DocumentList({ documents }: { documents: DocumentWithStatus[] }) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  async function handleDelete(e: React.MouseEvent, docId: string, docTitle: string) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm(`Delete "${docTitle}"? This cannot be undone.`)) return;
+
+    setDeleting(docId);
+    const res = await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
+    if (res.ok) {
+      router.refresh();
+    }
+    setDeleting(null);
+  }
+
   if (documents.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -35,7 +54,7 @@ export function DocumentList({ documents }: { documents: DocumentWithStatus[] })
           <Link
             key={doc.id}
             href={`/documents/${doc.id}`}
-            className="flex items-start gap-4 rounded-lg border border-border p-5 transition-colors hover:border-white/20 group"
+            className={`flex items-start gap-4 rounded-lg border border-border p-5 transition-colors hover:border-white/20 group ${deleting === doc.id ? 'opacity-50 pointer-events-none' : ''}`}
             style={{ backgroundColor: 'var(--bg-card)' }}
           >
             <FileText className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
@@ -55,7 +74,13 @@ export function DocumentList({ documents }: { documents: DocumentWithStatus[] })
                 {' · '}{formatDate(doc.updated_at)}
               </p>
             </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+            <button
+              onClick={(e) => handleDelete(e, doc.id, doc.title)}
+              className="shrink-0 mt-1 p-1.5 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-400/10 transition-all"
+              title="Delete document"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </Link>
         );
       })}
