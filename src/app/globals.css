@@ -345,3 +345,47 @@
   align-self: flex-end;
   margin-bottom: 2px;
 }
+
+/* Markdown tables rendered in contract preview */
+.sc-contract .sc-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+.sc-contract .sc-table th,
+.sc-contract .sc-table td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid oklch(1 0 0 / 10%);
+  text-align: left;
+}
+.sc-contract .sc-table th {
+  font-weight: 600;
+  color: oklch(0.7 0 0);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+}
+.sc-contract .sc-table td {
+  color: oklch(0.8 0 0);
+}
+
+/* Headings from markdown conversion */
+.sc-contract h1,
+.sc-contract h2,
+.sc-contract h3,
+.sc-contract h4 {
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.sc-contract h1 { font-size: 1.5rem; }
+.sc-contract h2 { font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.02em; }
+.sc-contract h3 { font-size: 1.05rem; }
+.sc-contract h4 { font-size: 0.95rem; }
+.sc-contract hr {
+  border: none;
+  border-top: 1px solid oklch(1 0 0 / 12%);
+  margin: 1.5rem 0;
+}

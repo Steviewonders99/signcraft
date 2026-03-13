@@ -33,34 +33,81 @@ const VariableTagHTML = Node.create({
 
 const extensions = [StarterKit, VariableTagHTML];
 
+/** Convert raw markdown syntax inside <p> tags to proper HTML.
+ *  This handles documents where AI-generated markdown was stored as plain text.
+ */
+function convertMarkdownInHtml(html: string): string {
+  // Convert <p>## Heading</p> → <h2>Heading</h2>
+  html = html.replace(/<p[^>]*>####\s+(.+?)<\/p>/gi, '<h4>$1</h4>');
+  html = html.replace(/<p[^>]*>###\s+(.+?)<\/p>/gi, '<h3>$1</h3>');
+  html = html.replace(/<p[^>]*>##\s+(.+?)<\/p>/gi, '<h2>$1</h2>');
+  html = html.replace(/<p[^>]*>#\s+(.+?)<\/p>/gi, '<h1>$1</h1>');
+
+  // Convert <p>---</p> → <hr>
+  html = html.replace(/<p[^>]*>-{3,}<\/p>/gi, '<hr>');
+
+  // Convert **bold** → <strong>bold</strong> inside any element
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+  // Convert *italic* → <em>italic</em> (but not inside already converted strong)
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+
+  // Convert markdown tables: | col | col | rows
+  // Detect table blocks: consecutive <p> tags starting with |
+  html = html.replace(/(?:<p[^>]*>\|.+?\|<\/p>\s*)+/gi, (match) => {
+    const rows = match.match(/<p[^>]*>(\|.+?\|)<\/p>/gi);
+    if (!rows || rows.length < 2) return match;
+
+    let table = '<table class="sc-table">';
+    rows.forEach((row, i) => {
+      const cellContent = row.replace(/<p[^>]*>\|(.+?)\|<\/p>/i, '$1');
+      // Skip separator rows (|---|---|)
+      if (/^[\s|:-]+$/.test(cellContent)) return;
+      const cells = cellContent.split('|').map((c) => c.trim());
+      const tag = i === 0 ? 'th' : 'td';
+      table += '<tr>' + cells.map((c) => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+    });
+    table += '</table>';
+    return table;
+  });
+
+  // Convert list items: <p>- (a) text</p> → proper structure
+  // Keep as-is since they're already displaying correctly as paragraphs
+
+  return html;
+}
+
+// Signature field labels we recognize (case-insensitive)
+const SIG_FIELD_RE = /^(Signature|Printed Name|Name|Title|Date|Email|Phone)\s*:\s*_{2,}/i;
+const SIG_FIELD_LABEL_RE = /^(Signature|Printed Name|Name|Title|Date|Email|Phone)/i;
+
 /** Transform signature field paragraphs into styled signature blocks.
  *  Handles <p> tags with optional attributes (e.g. xmlns from generateHTML).
  */
 function transformSignatureBlocks(html: string): string {
-  // Match <p ...> with any attributes, capturing the inner content that has signature fields
-  // Single-paragraph format: <p ...>Signature: ___<br>Name: ___<br>...</p>
-  html = html.replace(/<p[^>]*>((?:(?:Signature|Name|Title|Date)\s*:\s*_{3,})(?:<br\s*\/?>(?:(?:Signature|Name|Title|Date)\s*:\s*_{3,}))+)<\/p>/gi, (_, inner: string) => {
+  // Single-paragraph format: fields separated by <br>
+  html = html.replace(/<p[^>]*>((?:(?:Signature|Printed Name|Name|Title|Date|Email|Phone)\s*:\s*_{2,})(?:<br\s*\/?>(?:(?:Signature|Printed Name|Name|Title|Date|Email|Phone)\s*:\s*_{2,}))+)<\/p>/gi, (_, inner: string) => {
     const fields = inner.split(/<br\s*\/?>/).map((f: string) => {
-      const m = f.trim().match(/^(Signature|Name|Title|Date)/i);
+      const m = f.trim().match(SIG_FIELD_LABEL_RE);
       return m ? m[1] : '';
     }).filter(Boolean);
     return renderSignatureBlockHtml(fields);
   });
 
-  // Multi-paragraph format: consecutive <p ...>Field: ___</p> tags
-  html = html.replace(/(?:<p[^>]*>(?:(?:Signature|Name|Title|Date)\s*:\s*_{3,})<\/p>\s*){2,}/gi, (match) => {
+  // Multi-paragraph format: consecutive <p>Field: ___</p> tags (2+ in a row)
+  html = html.replace(/(?:<p[^>]*>(?:(?:Signature|Printed Name|Name|Title|Date|Email|Phone)\s*:\s*_{2,}[^<]*)<\/p>\s*){2,}/gi, (match) => {
     const fields: string[] = [];
-    const re = /<p[^>]*>((?:Signature|Name|Title|Date)\s*:\s*_{3,})<\/p>/gi;
+    const re = /<p[^>]*>((?:Signature|Printed Name|Name|Title|Date|Email|Phone)\s*:\s*_{2,}[^<]*)<\/p>/gi;
     let m;
     while ((m = re.exec(match)) !== null) {
-      const labelMatch = m[1].match(/^(Signature|Name|Title|Date)/i);
+      const labelMatch = m[1].match(SIG_FIELD_LABEL_RE);
       if (labelMatch) fields.push(labelMatch[1]);
     }
     return renderSignatureBlockHtml(fields);
   });
 
   // Single remaining <p>Signature: ___</p>
-  html = html.replace(/<p[^>]*>(Signature\s*:\s*_{3,})<\/p>/gi, () => {
+  html = html.replace(/<p[^>]*>(Signature\s*:\s*_{2,}[^<]*)<\/p>/gi, () => {
     return renderSignatureBlockHtml(['Signature']);
   });
 
@@ -89,7 +136,9 @@ export function ContractPreview({ content, collapsed = true, transparent = false
   useEffect(() => {
     try {
       const raw = generateHTML(content, extensions);
-      setHtml(transformSignatureBlocks(raw));
+      // Convert any raw markdown syntax (from AI-drafted documents stored as plain text)
+      const withMarkdown = convertMarkdownInHtml(raw);
+      setHtml(transformSignatureBlocks(withMarkdown));
     } catch {
       setHtml('<p>Unable to render document content.</p>');
     }

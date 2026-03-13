@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
   sigBlock: { marginTop: 8, marginBottom: 16, padding: 14, border: '1px solid #e5e5e5', borderRadius: 4 },
   sigRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10, gap: 8 },
   sigRowFirst: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 14, paddingBottom: 4, gap: 8 },
-  sigFieldLabel: { fontSize: 8, fontWeight: 'bold', color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, width: 60 },
+  sigFieldLabel: { fontSize: 8, fontWeight: 'bold', color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, width: 75 },
   sigFieldLine: { flex: 1, borderBottom: '1px solid #ccc', height: 1 },
   // Filled signature styles
   sigImage: { width: 160, height: 50, marginBottom: 2 },
@@ -62,11 +62,14 @@ function extractTextSegments(node: TipTapNode): string[] {
   return segments;
 }
 
+const PDF_SIG_FIELD_RE = /^(?:Signature|Printed Name|Name|Title|Date|Email|Phone)\s*:\s*_{2,}/;
+const PDF_SIG_LABEL_RE = /^(Signature|Printed Name|Name|Title|Date|Email|Phone)/;
+
 /** Check if a paragraph contains signature field(s) — either single or multi-field with hardBreaks */
 function isSignatureBlock(node: TipTapNode): boolean {
   if (node.type !== 'paragraph') return false;
   const segments = extractTextSegments(node);
-  return segments.some((s) => /^Signature\s*:\s*_{3,}/.test(s));
+  return segments.some((s) => /^Signature\s*:\s*_{2,}/.test(s));
 }
 
 /** Extract field labels from a signature block paragraph */
@@ -74,7 +77,7 @@ function extractSigFieldLabels(node: TipTapNode): string[] {
   const segments = extractTextSegments(node);
   return segments
     .map((s) => {
-      const m = s.match(/^(Signature|Name|Title|Date)\s*:\s*_{3,}/);
+      const m = s.match(PDF_SIG_LABEL_RE);
       return m ? m[1] : null;
     })
     .filter((l): l is string => l !== null);
@@ -84,14 +87,14 @@ function extractSigFieldLabels(node: TipTapNode): string[] {
 function isSignatureFieldParagraph(node: TipTapNode): boolean {
   if (node.type !== 'paragraph') return false;
   const segments = extractTextSegments(node);
-  return segments.length === 1 && /^(?:Signature|Name|Title|Date)\s*:\s*_{3,}/.test(segments[0]);
+  return segments.length === 1 && PDF_SIG_FIELD_RE.test(segments[0]);
 }
 
 /** Check if specifically starts with Signature: ___ (first field in a block) */
 function isSignatureLine(node: TipTapNode): boolean {
   if (node.type !== 'paragraph') return false;
   const segments = extractTextSegments(node);
-  return segments.length > 0 && /^Signature\s*:\s*_{3,}/.test(segments[0]);
+  return segments.length > 0 && /^Signature\s*:\s*_{2,}/.test(segments[0]);
 }
 
 interface SignatureInfo {

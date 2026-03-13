@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Plus, PenLine, Search, HelpCircle, Pencil, Check, X } from 'lucide-react';
+import { markdownToHtml } from '@/lib/markdown';
 import type { Editor } from '@tiptap/core';
 
 type AIMode = 'draft' | 'review' | 'explain' | 'edit';
@@ -395,7 +396,15 @@ export function AISidebar({ onInsert, documentContext, getEditor }: AISidebarPro
                       variant="ghost"
                       size="sm"
                       className="mt-1 h-6 text-xs"
-                      onClick={() => onInsert(msg.content)}
+                      onClick={() => {
+                        const editor = getEditor?.();
+                        if (editor) {
+                          const html = markdownToHtml(msg.content);
+                          editor.commands.insertContent(html);
+                        } else {
+                          onInsert(msg.content);
+                        }
+                      }}
                       style={{ color: 'var(--accent-hex)' }}
                     >
                       <Plus className="w-3 h-3 mr-1" />

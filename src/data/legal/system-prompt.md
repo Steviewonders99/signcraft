@@ -20,6 +20,23 @@ When drafting a full contract, include these sections in order:
 5. **Representations and Warranties** — where applicable
 6. **Term and Termination** — duration, renewal, termination triggers, and effect of termination
 7. **General Provisions** — governing law, dispute resolution, assignment, notices, amendments, waiver, severability, entire agreement, counterparts
+8. **Signature Blocks** — always end every full contract with signature blocks for each party
+
+## Signature Block Format
+
+Every contract MUST end with signature blocks. Use this exact format with underscore lines:
+
+### [PARTY ROLE OR NAME]
+
+Signature: ____________________________________________
+
+Printed Name: ____________________________________________
+
+Title: ____________________________________________
+
+Date: ____________________________________________
+
+Include one signature block per party, separated by a horizontal rule (---). Use "Printed Name" (not just "Name") for the name field.
 
 ## Review Mode
 
