@@ -3,13 +3,59 @@
 import { useEffect, useImperativeHandle, forwardRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import type { Editor } from '@tiptap/core';
+import { Extension } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import UnderlineExt from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Markdown } from 'tiptap-markdown';
 import { Toolbar } from './Toolbar';
 import { VariableTagExtension } from './VariableTag';
+import { markdownToHtml } from '@/lib/markdown';
 import type { JSONContent } from '@tiptap/core';
+
+/** Detect if pasted text contains markdown syntax */
+function looksLikeMarkdown(text: string): boolean {
+  return (
+    /^#{1,4}\s+/m.test(text) ||
+    /\*\*.+?\*\*/m.test(text) ||
+    /^-{3,}$/m.test(text) ||
+    /^\|.+\|$/m.test(text) ||
+    /^[-*]\s+/m.test(text) ||
+    /^\d+\.\s+/m.test(text)
+  );
+}
+
+/** TipTap extension: intercept pasted plain text, convert markdown → rich HTML */
+const MarkdownPaste = Extension.create({
+  name: 'markdownPaste',
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('markdownPaste'),
+        props: {
+          handlePaste: (view, event) => {
+            const clipboard = event.clipboardData;
+            if (!clipboard) return false;
+
+            // Only intercept plain-text pastes (no HTML already on clipboard)
+            const html = clipboard.getData('text/html');
+            if (html) return false;
+
+            const text = clipboard.getData('text/plain');
+            if (!text || !looksLikeMarkdown(text)) return false;
+
+            // Convert markdown → HTML and insert as rich content
+            event.preventDefault();
+            const converted = markdownToHtml(text);
+            this.editor.commands.insertContent(converted);
+            return true;
+          },
+        },
+      }),
+    ];
+  },
+});
 
 export interface DocumentEditorHandle {
   getEditor: () => Editor | null;
@@ -29,7 +75,7 @@ export const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorPro
       StarterKit,
       UnderlineExt,
       Placeholder.configure({ placeholder: 'Start drafting your contract...' }),
-      Markdown.configure({ transformPastedText: true, transformCopiedText: false }),
+      MarkdownPaste,
       VariableTagExtension,
     ],
     content,
