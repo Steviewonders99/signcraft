@@ -12,7 +12,9 @@ import {
   Undo,
   Redo,
   Code,
+  Sparkles,
 } from 'lucide-react';
+import { markdownToHtml } from '@/lib/markdown';
 
 interface ToolbarProps {
   editor: Editor | null;
@@ -56,6 +58,22 @@ export function Toolbar({ editor, onInsertVariable }: ToolbarProps) {
         style={{ color: 'var(--accent-hex)' }}
       >
         {'{{ }}'}
+      </Button>
+      <div className="w-px h-5 bg-border mx-1" />
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          const text = editor.getText();
+          if (!text.trim()) return;
+          const html = markdownToHtml(text);
+          editor.commands.setContent(html);
+        }}
+        className="h-8 px-2 text-xs gap-1.5"
+        title="Convert markdown to rich text"
+      >
+        <Sparkles className="w-3.5 h-3.5" />
+        Format MD
       </Button>
     </div>
   );
