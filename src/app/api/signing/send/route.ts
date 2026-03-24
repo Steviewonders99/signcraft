@@ -50,24 +50,31 @@ export async function POST(request: NextRequest) {
   // Store sender's pre-signature (countersigner role)
   if (sender_signature_data) {
     const senderName = user.user_metadata?.full_name || user.email || '';
-    await serviceClient
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    const { error: sigInsertError } = await serviceClient
       .from('signatures')
       .insert({
         signing_request_id: signingRequest.id,
         signer_role: 'countersigner',
         signature_data: sender_signature_data,
         full_name: senderName,
+        ip_address: ip,
+        user_agent: userAgent,
         signed_at: new Date().toISOString(),
       });
+    if (sigInsertError) {
+      return NextResponse.json({ error: 'Failed to store sender signature: ' + sigInsertError.message }, { status: 500 });
+    }
   }
 
   // Log audit events
-  const ip = request.headers.get('x-forwarded-for') || 'unknown';
-  await logAuditEvent(signingRequest.id, 'created', ip, { sender_email: user.email });
+  const auditIp = request.headers.get('x-forwarded-for') || 'unknown';
+  await logAuditEvent(signingRequest.id, 'created', auditIp, { sender_email: user.email });
   if (sender_signature_data) {
-    await logAuditEvent(signingRequest.id, 'countersigned', ip, { pre_signed: true });
+    await logAuditEvent(signingRequest.id, 'countersigned', auditIp, { pre_signed: true });
   }
-  await logAuditEvent(signingRequest.id, 'sent', ip, { signer_email, embed_mode: !!embed_mode });
+  await logAuditEvent(signingRequest.id, 'sent', auditIp, { signer_email, embed_mode: !!embed_mode });
 
   // Send email (skip if embed mode)
   if (!embed_mode) {
