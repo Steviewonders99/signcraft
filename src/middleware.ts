@@ -18,7 +18,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Only create the Supabase client when we actually need auth
+  // Use getSession() for middleware redirect decisions — reads JWT from
+  // cookie without a network round-trip (getUser() was causing timeouts).
+  // Actual auth validation happens in server components/API routes via getUser().
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -43,18 +45,18 @@ export async function middleware(request: NextRequest) {
   );
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   // Redirect unauthenticated users away from protected routes
-  if (!user && !isPublicRoute(pathname)) {
+  if (!session && !isPublicRoute(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
   // Redirect logged-in users from login to dashboard
-  if (user && pathname === '/login') {
+  if (session && pathname === '/login') {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
